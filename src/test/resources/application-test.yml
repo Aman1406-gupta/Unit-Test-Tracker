@@ -1,0 +1,5 @@
+spring:
+  elasticserach:
+    uris: http://localhost:9200
+    username: elastic
+    password: ZfJ9IeSao=*DuBloQzK-

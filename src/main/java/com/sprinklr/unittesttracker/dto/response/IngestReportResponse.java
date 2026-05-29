@@ -1,4 +1,4 @@
-package com.sprinklr.unittesttracker.dto;
+package com.sprinklr.unittesttracker.dto.response;
 
 public class IngestReportResponse {
     private String message;

@@ -1,6 +1,7 @@
 package com.sprinklr.unittesttracker.service;
 
-import com.sprinklr.unittesttracker.dto.IngestReportRequest;
+import com.sprinklr.unittesttracker.dto.request.IngestReportRequest;
+import com.sprinklr.unittesttracker.mapper.TestDocumentMapper;
 import com.sprinklr.unittesttracker.model.TestExecutionDocument;
 import com.sprinklr.unittesttracker.repository.TestExecutionRepository;
 import org.springframework.stereotype.Service;
@@ -9,18 +10,15 @@ import org.springframework.stereotype.Service;
 public class ReportIngestionService {
 
     private final TestExecutionRepository repository;
+    private final TestDocumentMapper mapper;
 
-    public ReportIngestionService(TestExecutionRepository repository) {
+    public ReportIngestionService(TestExecutionRepository repository, TestDocumentMapper mapper) {
         this.repository = repository;
+        this.mapper = mapper;
     }
 
     public TestExecutionDocument saveTestResult(IngestReportRequest request) {
-        TestExecutionDocument document = new TestExecutionDocument();
-        document.setTestName(request.getTestName());
-        document.setStatus(request.getStatus());
-        document.setDuration(request.getDuration());
-        document.setBuildId(request.getBuildId());
-
+        TestExecutionDocument document = mapper.toDocuments_json(request);
         return repository.save(document);
     }
 }

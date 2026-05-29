@@ -6,6 +6,6 @@ import org.springframework.stereotype.Service;
 @Service
 public class FaliureAnalysisService {
     public boolean isTestFailed(TestExecutionDocument document) {
-        return "failed".equalsIgnoreCase(document.getStatus());
+        return "FAILED".equalsIgnoreCase(document.getStatus());
     }
 }

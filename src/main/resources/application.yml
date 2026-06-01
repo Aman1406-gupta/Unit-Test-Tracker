@@ -1,0 +1,20 @@
+spring:
+  application:
+    name: unit-test-tracker
+
+  elasticsearch:
+      uris: http://localhost:9200
+
+server:
+  port: 8083
+
+logging:
+  level:
+    root: INFO
+    com.sprinklr.unittesttracker: DEBUG
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"

@@ -1,68 +1,63 @@
 package com.sprinklr.unittesttracker.model;
 
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.PositiveOrZero;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.elasticsearch.annotations.DateFormat;
 import org.springframework.data.elasticsearch.annotations.Document;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.PositiveOrZero;
 import org.springframework.data.elasticsearch.annotations.Field;
 import org.springframework.data.elasticsearch.annotations.FieldType;
-
 import java.time.Instant;
 
 @Document(indexName = "test_execution")
 public class TestExecutionDocument {
     @Id
     private String id;
+
     @Field(type = FieldType.Keyword)
     @NotBlank
     private String testName;
+
     @Field(type = FieldType.Keyword)
     @NotBlank
-    private String testclass;
+    private String testClass;
+
+    @Field(type = FieldType.Keyword)
+    private String suiteName;
+
     @Field(type = FieldType.Keyword)
     @NotBlank
     private String status;
+
     @Field(type = FieldType.Double)
     @PositiveOrZero
     private double duration;
+
     @Field(type = FieldType.Keyword)
     @NotBlank
     private String buildID;
-    @Field(type = FieldType.Keyword)
-    private String ownerID;
+
     @Field(type = FieldType.Date, format = DateFormat.date_time)
     @NotNull
     private Instant timestamp;
+
     @Field(type = FieldType.Text)
     private String errorMessage;
+
     @Field(type = FieldType.Text)
     private String stackTrace;
+
     @Field(type = FieldType.Keyword)
     private String commitID;
+
     @Field(type = FieldType.Keyword)
     private String branchName;
+
     @Field(type = FieldType.Boolean)
     private boolean isFlaky;
 
     public TestExecutionDocument() {
-    }
-
-    public TestExecutionDocument(String id, String testName, String testclass, String status, double duration, String buildId, String ownerID, Instant timestamp, String errorMessage, String stackTrace, String commitId, String branchName, boolean isFlaky) {
-        this.id = id;
-        this.testName = testName;
-        this.testclass = testclass;
-        this.status = status;
-        this.duration = duration;
-        this.buildID = buildId;
-        this.ownerID = ownerID;
-        this.timestamp = timestamp;
-        this.errorMessage = errorMessage;
-        this.stackTrace = stackTrace;
-        this.commitID = commitId;
-        this.branchName = branchName;
-        this.isFlaky = isFlaky;
     }
 
     public String getId() {
@@ -81,12 +76,20 @@ public class TestExecutionDocument {
         this.testName = testName;
     }
 
-    public String getTestclass() {
-        return testclass;
+    public String getTestClass() {
+        return testClass;
     }
 
-    public void setTestclass(String testclass) {
-        this.testclass = testclass;
+    public void setTestClass(String testClass) {
+        this.testClass = testClass;
+    }
+
+    public String getSuiteName() {
+        return suiteName;
+    }
+
+    public void setSuiteName(String suiteName) {
+        this.suiteName = suiteName;
     }
 
     public String getStatus() {
@@ -111,14 +114,6 @@ public class TestExecutionDocument {
 
     public void setBuildID(String buildID) {
         this.buildID = buildID;
-    }
-
-    public String getOwnerID() {
-        return ownerID;
-    }
-
-    public void setOwnerID(String ownerID) {
-        this.ownerID = ownerID;
     }
 
     public Instant getTimestamp() {

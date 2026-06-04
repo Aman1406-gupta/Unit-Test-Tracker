@@ -9,9 +9,6 @@ public class ParsedTestCase {
     private double duration;
     private String errorMessage;
     private String stackTrace;
-    private String ownerID;
-    private String commitId;
-    private String branchName;
     private Instant timestamp;
 
     public String getTestName() {
@@ -60,30 +57,6 @@ public class ParsedTestCase {
 
     public void setStackTrace(String stackTrace) {
         this.stackTrace = stackTrace;
-    }
-
-    public String getOwnerID() {
-        return ownerID;
-    }
-
-    public void setOwnerID(String ownerID) {
-        this.ownerID = ownerID;
-    }
-
-    public String getCommitId() {
-        return commitId;
-    }
-
-    public void setCommitId(String commitId) {
-        this.commitId = commitId;
-    }
-
-    public String getBranchName() {
-        return branchName;
-    }
-
-    public void setBranchName(String branchName) {
-        this.branchName = branchName;
     }
 
     public Instant getTimestamp() {

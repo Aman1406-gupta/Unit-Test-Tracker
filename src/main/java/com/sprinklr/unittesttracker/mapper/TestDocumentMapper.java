@@ -22,18 +22,28 @@ public class TestDocumentMapper {
     private List<TestExecutionDocument> toDocuments_setter(ParsedTestReport report, ParsedTestClass testClass) {
         return testClass.getTestCases().stream().map(testCase -> {
             TestExecutionDocument document = new TestExecutionDocument();
+            document.setMetadata(report.getMetadata());
             document.setTestName(testCase.getTestName());
-            document.setTestClass(testClass.getClassName());
+            document.setClassName(testClass.getClassName());
             document.setSuiteName(report.getSuiteName());
+            document.setMethodName(testCase.getMethodName());
             document.setStatus(testCase.getStatus());
             document.setDuration(testCase.getDuration());
-            document.setBuildID(report.getBuildID_suite());
-            document.setTimestamp(testCase.getTimestamp() != null ? testCase.getTimestamp() : Instant.now());
+            document.setTimestamp_execution(testCase.getTimestamp_execution() != null ? testCase.getTimestamp_execution() : Instant.now());
             document.setErrorMessage(testCase.getErrorMessage());
             document.setStackTrace(testCase.getStackTrace());
-            document.setCommitID(report.getCommitID_suite());
-            document.setBranchName(report.getBranchName_suite());
             document.setIsFlaky(false);
+
+            document.setClassTests(testClass.getTests());
+            document.setClassFailures(testClass.getFailures());
+            document.setClassErrors(testClass.getErrors());
+            document.setClassSkipped(testClass.getSkipped());
+
+            document.setSuiteTotalTests(report.getTotalTests());
+            document.setSuiteTotalFailures(report.getTotalFailures());
+            document.setSuiteTotalErrors(report.getTotalErrors());
+            document.setSuiteTotalSkipped(report.getTotalSkipped());
+
             return document;
         }).collect(Collectors.toList());
     }

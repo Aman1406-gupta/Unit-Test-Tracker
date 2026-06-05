@@ -1,5 +1,6 @@
 package com.sprinklr.unittesttracker.model;
 
+import com.sprinklr.unittesttracker.parser.parseroutputobjects.Metadata;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PositiveOrZero;
@@ -15,16 +16,25 @@ public class TestExecutionDocument {
     @Id
     private String id;
 
+    @Field(type = FieldType.Object)
+    @NotNull
+    private Metadata metadata;
+
     @Field(type = FieldType.Keyword)
     @NotBlank
     private String testName;
 
     @Field(type = FieldType.Keyword)
     @NotBlank
-    private String testClass;
+    private String className;
 
     @Field(type = FieldType.Keyword)
+    @NotBlank
     private String suiteName;
+
+    @Field(type = FieldType.Keyword)
+    @NotBlank
+    private String methodName;
 
     @Field(type = FieldType.Keyword)
     @NotBlank
@@ -32,30 +42,46 @@ public class TestExecutionDocument {
 
     @Field(type = FieldType.Double)
     @PositiveOrZero
-    private double duration;
-
-    @Field(type = FieldType.Keyword)
-    @NotBlank
-    private String buildID;
+    private double duration_test;
 
     @Field(type = FieldType.Date, format = DateFormat.date_time)
     @NotNull
-    private Instant timestamp;
+    private Instant timestamp_execution;
 
     @Field(type = FieldType.Text)
+    @NotBlank
     private String errorMessage;
 
     @Field(type = FieldType.Text)
+    @NotBlank
     private String stackTrace;
-
-    @Field(type = FieldType.Keyword)
-    private String commitID;
-
-    @Field(type = FieldType.Keyword)
-    private String branchName;
 
     @Field(type = FieldType.Boolean)
     private boolean isFlaky;
+
+    @Field(type = FieldType.Integer)
+    private int classTests;
+
+    @Field(type = FieldType.Integer)
+    private int classFailures;
+
+    @Field(type = FieldType.Integer)
+    private int classErrors;
+
+    @Field(type = FieldType.Integer)
+    private int classSkipped;
+
+    @Field(type = FieldType.Integer)
+    private int suiteTotalTests;
+
+    @Field(type = FieldType.Integer)
+    private int suiteTotalFailures;
+
+    @Field(type = FieldType.Integer)
+    private int suiteTotalErrors;
+
+    @Field(type = FieldType.Integer)
+    private int suiteTotalSkipped;
 
     public TestExecutionDocument() {
     }
@@ -68,6 +94,14 @@ public class TestExecutionDocument {
         this.id = id;
     }
 
+    public Metadata getMetadata() {
+        return metadata;
+    }
+
+    public void setMetadata(Metadata metadata) {
+        this.metadata = metadata;
+    }
+
     public String getTestName() {
         return testName;
     }
@@ -76,12 +110,12 @@ public class TestExecutionDocument {
         this.testName = testName;
     }
 
-    public String getTestClass() {
-        return testClass;
+    public String getClassName() {
+        return className;
     }
 
-    public void setTestClass(String testClass) {
-        this.testClass = testClass;
+    public void setClassName(String className) {
+        this.className = className;
     }
 
     public String getSuiteName() {
@@ -90,6 +124,14 @@ public class TestExecutionDocument {
 
     public void setSuiteName(String suiteName) {
         this.suiteName = suiteName;
+    }
+
+    public String getMethodName() {
+        return methodName;
+    }
+
+    public void setMethodName(String methodName) {
+        this.methodName = methodName;
     }
 
     public String getStatus() {
@@ -101,27 +143,19 @@ public class TestExecutionDocument {
     }
 
     public double getDuration() {
-        return duration;
+        return duration_test;
     }
 
-    public void setDuration(double duration) {
-        this.duration = duration;
+    public void setDuration(double duration_test) {
+        this.duration_test = duration_test;
     }
 
-    public String getBuildID() {
-        return buildID;
+    public Instant getTimestamp_execution() {
+        return timestamp_execution;
     }
 
-    public void setBuildID(String buildID) {
-        this.buildID = buildID;
-    }
-
-    public Instant getTimestamp() {
-        return timestamp;
-    }
-
-    public void setTimestamp(Instant timestamp) {
-        this.timestamp = timestamp;
+    public void setTimestamp_execution(Instant timestamp_execution) {
+        this.timestamp_execution = timestamp_execution;
     }
 
     public String getErrorMessage() {
@@ -140,27 +174,43 @@ public class TestExecutionDocument {
         this.stackTrace = stackTrace;
     }
 
-    public String getCommitID() {
-        return commitID;
-    }
-
-    public void setCommitID(String commitID) {
-        this.commitID = commitID;
-    }
-
-    public String getBranchName() {
-        return branchName;
-    }
-
-    public void setBranchName(String branchName) {
-        this.branchName = branchName;
-    }
-
     public boolean getIsFlaky() {
         return isFlaky;
     }
 
     public void setIsFlaky(boolean isFlaky) {
         this.isFlaky = isFlaky;
+    }
+
+    public void setClassTests(int tests) {
+        this.classTests = tests;
+    }
+
+    public void setClassFailures(int failures) {
+        this.classFailures = failures;
+    }
+
+    public void setClassErrors(int errors) {
+        this.classErrors = errors;
+    }
+
+    public void setClassSkipped(int skipped) {
+        this.classSkipped = skipped;
+    }
+
+    public void setSuiteTotalTests(int totalTests) {
+        this.suiteTotalTests = totalTests;
+    }
+
+    public void setSuiteTotalFailures(int totalFailures) {
+        this.suiteTotalFailures = totalFailures;
+    }
+
+    public void setSuiteTotalErrors(int totalErrors) {
+        this.suiteTotalErrors = totalErrors;
+    }
+
+    public void setSuiteTotalSkipped(int totalSkipped) {
+        this.suiteTotalSkipped = totalSkipped;
     }
 }

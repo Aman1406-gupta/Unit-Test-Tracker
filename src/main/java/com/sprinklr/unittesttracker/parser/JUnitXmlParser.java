@@ -4,9 +4,14 @@ import com.sprinklr.unittesttracker.parser.parseroutputobjects.ParsedTestCase;
 import com.sprinklr.unittesttracker.parser.parseroutputobjects.ParsedTestClass;
 import com.sprinklr.unittesttracker.parser.parseroutputobjects.ParsedTestReport;
 import org.springframework.stereotype.Component;
-import org.w3c.dom.*;
+import org.springframework.web.multipart.MultipartFile;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 import javax.xml.parsers.DocumentBuilderFactory;
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -17,13 +22,24 @@ import java.util.Map;
 @Component
 public class JUnitXmlParser {
 
+    public ParsedTestReport parseFiles(MultipartFile reportFile, MultipartFile metadataFile) {
+        try {
+            String xmlContent = new String(reportFile.getBytes(), StandardCharsets.UTF_8);
+            return parse(xmlContent);
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to read XML report file", e);
+        }
+    }
+
     public ParsedTestReport parse(String xmlContent) {
         try {
             DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
             factory.setNamespaceAware(false);
             factory.setIgnoringComments(true);
             factory.setExpandEntityReferences(false);
-            Document doc = factory.newDocumentBuilder().parse(new ByteArrayInputStream(xmlContent.getBytes(StandardCharsets.UTF_8)));
+
+            Document doc = factory.newDocumentBuilder()
+                    .parse(new ByteArrayInputStream(xmlContent.getBytes(StandardCharsets.UTF_8)));
             doc.getDocumentElement().normalize();
 
             Element root = doc.getDocumentElement();
@@ -37,15 +53,16 @@ public class JUnitXmlParser {
             }
 
             ParsedTestReport report = new ParsedTestReport();
-            report.setSuiteName(suiteElement.getAttribute("name"));
-            report.setBuildID_suite(suiteElement.getAttribute("buildID_suite"));
-            report.setCommitID_suite(suiteElement.getAttribute("commitID_suite"));
-            report.setBranchName_suite(suiteElement.getAttribute("branchName_suite"));
-            report.setTests(parseIntSafe(suiteElement.getAttribute("tests")));
-            report.setFailures(parseIntSafe(suiteElement.getAttribute("failures")));
-            report.setErrors(parseIntSafe(suiteElement.getAttribute("errors")));
-            report.setSkipped(parseIntSafe(suiteElement.getAttribute("skipped")));
-            report.setTimestamp_suite(parseInstantSafe(suiteElement.getAttribute("timestamp")));
+
+            // metadata will be attached later by MetadataParser
+            report.setMetadata(null);
+
+            // suite-level fields
+            String suiteName = suiteElement.getAttribute("suiteName");
+            if (suiteName == null || suiteName.isBlank()) {
+                suiteName = suiteElement.getAttribute("name");
+            }
+            report.setSuiteName(suiteName);
 
             Map<String, ParsedTestClass> classMap = new LinkedHashMap<>();
             NodeList testcaseNodes = doc.getElementsByTagName("testcase");
@@ -70,10 +87,30 @@ public class JUnitXmlParser {
                 });
 
                 ParsedTestCase testCase = new ParsedTestCase();
-                testCase.setTestName(testcase.getAttribute("name"));
-                testCase.setTestClass(className);
-                testCase.setDuration(parseDoubleSafe(testcase.getAttribute("time")));
-                testCase.setTimestamp(report.getTimestamp_suite() != null ? report.getTimestamp_suite() : Instant.now());
+
+                String testName = testcase.getAttribute("testName");
+                if (testName == null || testName.isBlank()) {
+                    testName = testcase.getAttribute("name");
+                }
+                testCase.setTestName(testName);
+
+                String methodName = testcase.getAttribute("method");
+                if (methodName == null || methodName.isBlank()) {
+                    methodName = testcase.getAttribute("methodName");
+                }
+                testCase.setMethodName(methodName);
+
+                String duration = testcase.getAttribute("duration");
+                if (duration == null || duration.isBlank()) {
+                    duration = testcase.getAttribute("time");
+                }
+                testCase.setDuration(parseDoubleSafe(duration));
+
+                String ts = testcase.getAttribute("timestamp_execution");
+                if (ts == null || ts.isBlank()) {
+                    ts = testcase.getAttribute("timestamp");
+                }
+                testCase.setTimestamp_execution(parseInstantSafe(ts));
 
                 String status = "PASSED";
                 String errorMessage = null;
@@ -114,6 +151,8 @@ public class JUnitXmlParser {
             }
 
             report.setTestClasses(classes);
+            recalculateSuiteSummary(report, suiteElement);
+
             return report;
         } catch (Exception e) {
             throw new RuntimeException("Failed to parse JUnit XML report", e);
@@ -125,11 +164,9 @@ public class JUnitXmlParser {
         int failures = 0;
         int errors = 0;
         int skipped = 0;
-        double duration = 0.0;
 
         for (ParsedTestCase testCase : parsedClass.getTestCases()) {
             tests++;
-            duration += testCase.getDuration();
 
             if ("FAILED".equalsIgnoreCase(testCase.getStatus())) {
                 failures++;
@@ -144,7 +181,48 @@ public class JUnitXmlParser {
         parsedClass.setFailures(failures);
         parsedClass.setErrors(errors);
         parsedClass.setSkipped(skipped);
-        parsedClass.setDuration(duration);
+    }
+
+    private void recalculateSuiteSummary(ParsedTestReport parsedReport, Element suiteElement) {
+        int totalTests = 0;
+        int totalFailures = 0;
+        int totalErrors = 0;
+        int totalSkipped = 0;
+
+        for (ParsedTestClass testClass : parsedReport.getTestClasses()) {
+            totalTests += testClass.getTests();
+            totalFailures += testClass.getFailures();
+            totalErrors += testClass.getErrors();
+            totalSkipped += testClass.getSkipped();
+        }
+
+        int declaredTests = parseIntSafe(firstNonBlank(
+                suiteElement.getAttribute("totalTests"),
+                suiteElement.getAttribute("tests")
+        ));
+        int declaredFailures = parseIntSafe(firstNonBlank(
+                suiteElement.getAttribute("totalFailures"),
+                suiteElement.getAttribute("failures")
+        ));
+        int declaredErrors = parseIntSafe(firstNonBlank(
+                suiteElement.getAttribute("totalErrors"),
+                suiteElement.getAttribute("errors")
+        ));
+        int declaredSkipped = parseIntSafe(firstNonBlank(
+                suiteElement.getAttribute("totalSkipped"),
+                suiteElement.getAttribute("skipped")
+        ));
+
+        parsedReport.setTotalTests(declaredTests == totalTests || declaredTests == 0 ? totalTests : declaredTests);
+        parsedReport.setTotalFailures(declaredFailures == totalFailures || declaredFailures == 0 ? totalFailures : declaredFailures);
+        parsedReport.setTotalErrors(declaredErrors == totalErrors || declaredErrors == 0 ? totalErrors : declaredErrors);
+        parsedReport.setTotalSkipped(declaredSkipped == totalSkipped || declaredSkipped == 0 ? totalSkipped : declaredSkipped);
+    }
+
+    private String firstNonBlank(String a, String b) {
+        if (a != null && !a.isBlank()) return a;
+        if (b != null && !b.isBlank()) return b;
+        return null;
     }
 
     private int parseIntSafe(String value) {

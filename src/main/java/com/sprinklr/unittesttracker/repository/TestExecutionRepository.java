@@ -7,8 +7,8 @@ import java.util.List;
 @Repository
 public interface TestExecutionRepository extends ElasticsearchRepository<TestExecutionDocument, String> {
     List<TestExecutionDocument> findByTestName(String testName);
-    List<TestExecutionDocument> findByTestClass(String testClass);
+    List<TestExecutionDocument> findByClassName(String className);
     List<TestExecutionDocument> findBySuiteName(String suiteName);
-    List<TestExecutionDocument> findByBuildID(String buildID);
+    List<TestExecutionDocument> findByMetadataBuildID(String buildID);
     List<TestExecutionDocument> findByStatus(String status);
 }

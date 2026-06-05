@@ -1,13 +1,16 @@
 package com.sprinklr.unittesttracker.controller;
 
+import com.sprinklr.unittesttracker.model.TestExecutionDocument;
 import com.sprinklr.unittesttracker.service.XmlReportIngestionService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+import java.util.List;
 
 @RestController
-@RequestMapping("/api/xml-reports")
+@RequestMapping("/test-reports")
 public class XmlReportController {
     private final XmlReportIngestionService service;
 
@@ -15,14 +18,11 @@ public class XmlReportController {
         this.service = service;
     }
 
-    @PostMapping(value = "/xml", consumes = MediaType.APPLICATION_XML_VALUE)
-    public ResponseEntity<?> uploadXmlReport(@RequestBody String xmlContent) {
+    @PostMapping(value = "/xml", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> uploadXmlReportMultipart(@RequestPart("report") MultipartFile reportFile, @RequestPart(value = "metadata") MultipartFile metadataFile) {
         try {
-            if (xmlContent == null || xmlContent.trim().isEmpty()) {
-                return ResponseEntity.badRequest().body("XML content is empty");
-            }
-            String message = service.ingestXmlReport(xmlContent);
-            return ResponseEntity.status(HttpStatus.CREATED).body(message);
+            List<TestExecutionDocument> saved = service.ingestXmlReport_Multipart(reportFile, metadataFile);
+            return ResponseEntity.status(HttpStatus.CREATED).body(saved);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body("Bad Request: " + e.getMessage());
         } catch (Exception e) {

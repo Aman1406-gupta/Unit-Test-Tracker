@@ -2,10 +2,12 @@ package com.sprinklr.unittesttracker.service;
 
 import com.sprinklr.unittesttracker.mapper.TestDocumentMapper;
 import com.sprinklr.unittesttracker.model.TestExecutionDocument;
+import com.sprinklr.unittesttracker.parser.MetadataParser;
 import com.sprinklr.unittesttracker.parser.JsonReportParser;
 import com.sprinklr.unittesttracker.parser.parseroutputobjects.ParsedTestReport;
 import com.sprinklr.unittesttracker.repository.TestExecutionRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 
 @Service
@@ -21,19 +23,16 @@ public class JsonReportIngestionService {
         this.parser = parser;
     }
 
-    public TestExecutionDocument saveALLTestResults(String jsonContent) {
+    public List<TestExecutionDocument> saveAllTestResults(String jsonContent, MultipartFile metadataFile) {
         ParsedTestReport parsedReport = parser.parse(jsonContent);
-        List<TestExecutionDocument> documents = mapper.toDocuments(parsedReport);
-
-        if (documents == null || documents.isEmpty()) {
-            throw new IllegalArgumentException("No test cases found in JSON report");
+        if (metadataFile != null && !metadataFile.isEmpty()) {
+            try {
+                MetadataParser.parse_metadata(parsedReport, metadataFile);
+            } catch (Exception e) {
+                throw new IllegalArgumentException("Failed to read metadata file: " + e.getMessage());
+            }
         }
 
-        return repository.save(documents.get(0));
-    }
-
-    public List<TestExecutionDocument> saveAllTestResults(String jsonContent) {
-        ParsedTestReport parsedReport = parser.parse(jsonContent);
         List<TestExecutionDocument> documents = mapper.toDocuments(parsedReport);
 
         if (documents == null || documents.isEmpty()) {
@@ -48,8 +47,8 @@ public class JsonReportIngestionService {
         return repository.findByTestName(testName);
     }
 
-    public List<TestExecutionDocument> getReportsByTestClass(String testClass) {
-        return repository.findByTestClass(testClass);
+    public List<TestExecutionDocument> getReportsByTestClass(String className) {
+        return repository.findByClassName(className);
     }
 
     public List<TestExecutionDocument> getReportsBySuiteName(String suiteName) {
@@ -57,7 +56,7 @@ public class JsonReportIngestionService {
     }
 
     public List<TestExecutionDocument> getReportsByBuildID(String buildID) {
-        return repository.findByBuildID(buildID);
+        return repository.findByMetadataBuildID(buildID);
     }
 
     public List<TestExecutionDocument> getReportsByStatus(String status) {

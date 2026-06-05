@@ -4,12 +4,12 @@ import java.time.Instant;
 
 public class ParsedTestCase {
     private String testName;
-    private String testClass;
+    private String methodName;
     private String status;
-    private double duration;
+    private double duration_test;
     private String errorMessage;
     private String stackTrace;
-    private Instant timestamp;
+    private Instant timestamp_execution;
 
     public String getTestName() {
         return testName;
@@ -19,12 +19,12 @@ public class ParsedTestCase {
         this.testName = testName;
     }
 
-    public String getTestClass() {
-        return testClass;
+    public String getMethodName() {
+        return methodName;
     }
 
-    public void setTestClass(String testClass) {
-        this.testClass = testClass;
+    public void setMethodName(String methodName) {
+        this.methodName = methodName;
     }
 
     public String getStatus() {
@@ -36,11 +36,11 @@ public class ParsedTestCase {
     }
 
     public double getDuration() {
-        return duration;
+        return duration_test;
     }
 
-    public void setDuration(double duration) {
-        this.duration = duration;
+    public void setDuration(double duration_test) {
+        this.duration_test = duration_test;
     }
 
     public String getErrorMessage() {
@@ -59,11 +59,11 @@ public class ParsedTestCase {
         this.stackTrace = stackTrace;
     }
 
-    public Instant getTimestamp() {
-        return timestamp;
+    public Instant getTimestamp_execution() {
+        return timestamp_execution;
     }
 
-    public void setTimestamp(Instant timestamp) {
-        this.timestamp = timestamp;
+    public void setTimestamp_execution(Instant timestamp_execution) {
+        this.timestamp_execution = timestamp_execution;
     }
 }

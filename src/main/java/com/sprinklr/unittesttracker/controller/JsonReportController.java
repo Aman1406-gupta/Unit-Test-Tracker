@@ -29,34 +29,4 @@ public class JsonReportController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Internal Server Error : Failed to save json test report " + e.getMessage());
         }
     }
-
-    @GetMapping("/test-name/{testName}")
-    public ResponseEntity<?> getReportsByTestName(@PathVariable String testName) {
-        List<TestExecutionDocument> docs = service.getReportsByTestName(testName);
-        return docs.isEmpty() ? ResponseEntity.status(HttpStatus.NOT_FOUND).body("No reports found for testName: " + testName) : ResponseEntity.ok(docs);
-    }
-
-    @GetMapping("/test-class/{testClass}")
-    public ResponseEntity<?> getReportsByTestClass(@PathVariable String testClass) {
-        List<TestExecutionDocument> docs = service.getReportsByTestClass(testClass);
-        return docs.isEmpty() ? ResponseEntity.status(HttpStatus.NOT_FOUND).body("No reports found for testclass: " + testClass) : ResponseEntity.ok(docs);
-    }
-
-    @GetMapping("/suite/{suiteName}")
-    public ResponseEntity<?> getReportsBySuiteName(@PathVariable String suiteName) {
-        List<TestExecutionDocument> docs = service.getReportsBySuiteName(suiteName);
-        return docs.isEmpty() ? ResponseEntity.status(HttpStatus.NOT_FOUND).body("No reports found for suiteName: " + suiteName) : ResponseEntity.ok(docs);
-    }
-
-    @GetMapping("/build/{buildID}")
-    public ResponseEntity<?> getReportsByBuildID(@PathVariable String buildID) {
-        List<TestExecutionDocument> docs = service.getReportsByBuildID(buildID);
-        return docs.isEmpty() ? ResponseEntity.status(HttpStatus.NOT_FOUND).body("No reports found for buildID: " + buildID) : ResponseEntity.ok(docs);
-    }
-
-    @GetMapping("/status/{status}")
-    public ResponseEntity<?> getReportsByStatus(@PathVariable String status) {
-        List<TestExecutionDocument> docs = service.getReportsByStatus(status);
-        return docs.isEmpty() ? ResponseEntity.status(HttpStatus.NOT_FOUND).body("No reports found with status: " + status) : ResponseEntity.ok(docs);
-    }
 }

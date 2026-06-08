@@ -42,24 +42,4 @@ public class JsonReportIngestionService {
         repository.saveAll(documents);
         return documents;
     }
-
-    public List<TestExecutionDocument> getReportsByTestName(String testName) {
-        return repository.findByTestName(testName);
-    }
-
-    public List<TestExecutionDocument> getReportsByTestClass(String className) {
-        return repository.findByClassName(className);
-    }
-
-    public List<TestExecutionDocument> getReportsBySuiteName(String suiteName) {
-        return repository.findBySuiteName(suiteName);
-    }
-
-    public List<TestExecutionDocument> getReportsByBuildID(String buildID) {
-        return repository.findByMetadataBuildID(buildID);
-    }
-
-    public List<TestExecutionDocument> getReportsByStatus(String status) {
-        return repository.findByStatus(status);
-    }
 }

@@ -60,16 +60,20 @@ public class TestExecutionDocument {
     private boolean isFlaky;
 
     @Field(type = FieldType.Integer)
-    private int suiteTotalTests;
+    @PositiveOrZero
+    public int suiteTotalTests;
 
     @Field(type = FieldType.Integer)
-    private int suiteTotalFailures;
+    @PositiveOrZero
+    public int suiteTotalFailures;
 
     @Field(type = FieldType.Integer)
-    private int suiteTotalErrors;
+    @PositiveOrZero
+    public int suiteTotalErrors;
 
     @Field(type = FieldType.Integer)
-    private int suiteTotalSkipped;
+    @PositiveOrZero
+    public int suiteTotalSkipped;
 
     public TestExecutionDocument() {
     }

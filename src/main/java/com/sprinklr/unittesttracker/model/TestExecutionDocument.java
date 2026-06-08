@@ -60,18 +60,6 @@ public class TestExecutionDocument {
     private boolean isFlaky;
 
     @Field(type = FieldType.Integer)
-    private int classTests;
-
-    @Field(type = FieldType.Integer)
-    private int classFailures;
-
-    @Field(type = FieldType.Integer)
-    private int classErrors;
-
-    @Field(type = FieldType.Integer)
-    private int classSkipped;
-
-    @Field(type = FieldType.Integer)
     private int suiteTotalTests;
 
     @Field(type = FieldType.Integer)
@@ -180,22 +168,6 @@ public class TestExecutionDocument {
 
     public void setIsFlaky(boolean isFlaky) {
         this.isFlaky = isFlaky;
-    }
-
-    public void setClassTests(int tests) {
-        this.classTests = tests;
-    }
-
-    public void setClassFailures(int failures) {
-        this.classFailures = failures;
-    }
-
-    public void setClassErrors(int errors) {
-        this.classErrors = errors;
-    }
-
-    public void setClassSkipped(int skipped) {
-        this.classSkipped = skipped;
     }
 
     public void setSuiteTotalTests(int totalTests) {

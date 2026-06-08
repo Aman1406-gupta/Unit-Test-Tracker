@@ -58,11 +58,11 @@ public class JUnitXmlParser {
             report.setMetadata(null);
 
             // suite-level fields
-            String suiteName = suiteElement.getAttribute("suiteName");
-            if (suiteName == null || suiteName.isBlank()) {
-                suiteName = suiteElement.getAttribute("name");
-            }
-            report.setSuiteName(suiteName);
+            report.setSuiteName(suiteElement.getAttribute("suitename"));
+            report.setTotalTests(parseIntSafe(suiteElement.getAttribute("tests")));
+            report.setTotalErrors(parseIntSafe(suiteElement.getAttribute("errors")));
+            report.setTotalFailures(parseIntSafe(suiteElement.getAttribute("failures")));
+            report.setTotalSkipped(parseIntSafe(suiteElement.getAttribute("skipped")));
 
             Map<String, ParsedTestClass> classMap = new LinkedHashMap<>();
             NodeList testcaseNodes = doc.getElementsByTagName("testcase");
@@ -75,7 +75,7 @@ public class JUnitXmlParser {
 
                 Element testcase = (Element) node;
 
-                String className = testcase.getAttribute("classname");
+                String className = testcase.getAttribute("className");
                 if (className == null || className.isBlank()) {
                     className = "UnknownClass";
                 }
@@ -96,7 +96,7 @@ public class JUnitXmlParser {
 
                 String methodName = testcase.getAttribute("method");
                 if (methodName == null || methodName.isBlank()) {
-                    methodName = testcase.getAttribute("methodName");
+                    methodName = testcase.getAttribute("name");
                 }
                 testCase.setMethodName(methodName);
 
@@ -110,7 +110,7 @@ public class JUnitXmlParser {
                 if (ts == null || ts.isBlank()) {
                     ts = testcase.getAttribute("timestamp");
                 }
-                testCase.setTimestamp_execution(parseInstantSafe(ts));
+                testCase.setTimestamp_execution(Instant.parse(ts));
 
                 String status = "PASSED";
                 String errorMessage = null;
@@ -146,83 +146,12 @@ public class JUnitXmlParser {
             }
 
             List<ParsedTestClass> classes = new ArrayList<>(classMap.values());
-            for (ParsedTestClass c : classes) {
-                recalculateClassSummary(c);
-            }
-
             report.setTestClasses(classes);
-            recalculateSuiteSummary(report, suiteElement);
 
             return report;
         } catch (Exception e) {
             throw new RuntimeException("Failed to parse JUnit XML report", e);
         }
-    }
-
-    private void recalculateClassSummary(ParsedTestClass parsedClass) {
-        int tests = 0;
-        int failures = 0;
-        int errors = 0;
-        int skipped = 0;
-
-        for (ParsedTestCase testCase : parsedClass.getTestCases()) {
-            tests++;
-
-            if ("FAILED".equalsIgnoreCase(testCase.getStatus())) {
-                failures++;
-            } else if ("SKIPPED".equalsIgnoreCase(testCase.getStatus())) {
-                skipped++;
-            } else if ("ERROR".equalsIgnoreCase(testCase.getStatus())) {
-                errors++;
-            }
-        }
-
-        parsedClass.setTests(tests);
-        parsedClass.setFailures(failures);
-        parsedClass.setErrors(errors);
-        parsedClass.setSkipped(skipped);
-    }
-
-    private void recalculateSuiteSummary(ParsedTestReport parsedReport, Element suiteElement) {
-        int totalTests = 0;
-        int totalFailures = 0;
-        int totalErrors = 0;
-        int totalSkipped = 0;
-
-        for (ParsedTestClass testClass : parsedReport.getTestClasses()) {
-            totalTests += testClass.getTests();
-            totalFailures += testClass.getFailures();
-            totalErrors += testClass.getErrors();
-            totalSkipped += testClass.getSkipped();
-        }
-
-        int declaredTests = parseIntSafe(firstNonBlank(
-                suiteElement.getAttribute("totalTests"),
-                suiteElement.getAttribute("tests")
-        ));
-        int declaredFailures = parseIntSafe(firstNonBlank(
-                suiteElement.getAttribute("totalFailures"),
-                suiteElement.getAttribute("failures")
-        ));
-        int declaredErrors = parseIntSafe(firstNonBlank(
-                suiteElement.getAttribute("totalErrors"),
-                suiteElement.getAttribute("errors")
-        ));
-        int declaredSkipped = parseIntSafe(firstNonBlank(
-                suiteElement.getAttribute("totalSkipped"),
-                suiteElement.getAttribute("skipped")
-        ));
-
-        parsedReport.setTotalTests(declaredTests == totalTests || declaredTests == 0 ? totalTests : declaredTests);
-        parsedReport.setTotalFailures(declaredFailures == totalFailures || declaredFailures == 0 ? totalFailures : declaredFailures);
-        parsedReport.setTotalErrors(declaredErrors == totalErrors || declaredErrors == 0 ? totalErrors : declaredErrors);
-        parsedReport.setTotalSkipped(declaredSkipped == totalSkipped || declaredSkipped == 0 ? totalSkipped : declaredSkipped);
-    }
-
-    private String firstNonBlank(String a, String b) {
-        if (a != null && !a.isBlank()) return a;
-        if (b != null && !b.isBlank()) return b;
-        return null;
     }
 
     private int parseIntSafe(String value) {
@@ -238,14 +167,6 @@ public class JUnitXmlParser {
             return (value == null || value.isBlank()) ? 0.0 : Double.parseDouble(value.trim());
         } catch (Exception e) {
             return 0.0;
-        }
-    }
-
-    private Instant parseInstantSafe(String value) {
-        try {
-            return (value == null || value.isBlank()) ? Instant.now() : Instant.parse(value.trim());
-        } catch (Exception e) {
-            return Instant.now();
         }
     }
 }

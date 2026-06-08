@@ -31,9 +31,7 @@ public class MetadataParser {
             metadata.setTestReportPath(text(root, "testReportPath"));
 
             JsonNode ts = root.get("timestamp_generation");
-            if (ts != null && !ts.isNull() && !ts.asText().isBlank()) {
-                metadata.setTimestamp_generation(Instant.parse(ts.asText()));
-            }
+            metadata.setTimestamp_generation(Instant.parse(ts.asText()));
 
             parsedReport.setMetadata(metadata);
         } catch (Exception e) {

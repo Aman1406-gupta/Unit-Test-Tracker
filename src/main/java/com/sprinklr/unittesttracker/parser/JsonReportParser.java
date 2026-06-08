@@ -21,6 +21,10 @@ public class JsonReportParser {
 
             report.setMetadata(null);
             report.setSuiteName(text(root, "suiteName"));
+            report.setTotalTests(integer(root, "tests"));
+            report.setTotalFailures(integer(root, "failures"));
+            report.setTotalErrors(integer(root, "errors"));
+            report.setTotalSkipped(integer(root, "skipped"));
 
             List<ParsedTestClass> classes = new ArrayList<>();
 
@@ -31,7 +35,6 @@ public class JsonReportParser {
                     ParsedTestClass testClass = new ParsedTestClass();
 
                     testClass.setClassName(text(classNode, "className"));
-                    testClass.setDuration(dbl(classNode, "duration"));
 
                     List<ParsedTestCase> cases = new ArrayList<>();
 
@@ -40,13 +43,18 @@ public class JsonReportParser {
                     if (testCasesNode.isArray()) {
                         for (JsonNode caseNode : testCasesNode) {
                             ParsedTestCase testCase = new ParsedTestCase();
-                            testCase.setTestName(text(caseNode, "testName"));
-                            String methodName = text(caseNode, "method");
 
-                            if (methodName == null || methodName.isBlank()) {
-                                methodName = text(caseNode, "methodName");
+                            String testName = text(caseNode, "testName");
+                            if (testName == null || testName.isBlank()) {
+                                testName = text(caseNode, "name");
                             }
 
+                            String methodName = text(caseNode, "method");
+                            if (methodName == null || methodName.isBlank()) {
+                                methodName = text(caseNode, "name");
+                            }
+
+                            testCase.setTestName(testName);
                             testCase.setMethodName(methodName);
                             testCase.setStatus(defaultText(text(caseNode, "status"), "PASSED"));
                             testCase.setDuration(dbl(caseNode, "duration"));
@@ -58,71 +66,16 @@ public class JsonReportParser {
                     }
 
                     testClass.setTestCases(cases);
-                    recalculateClassSummary(testClass, classNode);
                     classes.add(testClass);
                 }
             }
 
             report.setTestClasses(classes);
-            recalculateSuiteSummary(report, root);
 
             return report;
         } catch (Exception e) {
             throw new RuntimeException("Failed to parse JSON test report", e);
         }
-    }
-
-    private void recalculateClassSummary(ParsedTestClass testClass, JsonNode classNode) {
-        int tests = testClass.getTestCases().size();
-        int failures = 0;
-        int errors = 0;
-        int skipped = 0;
-
-        for (ParsedTestCase testCase : testClass.getTestCases()) {
-            if ("FAILED".equalsIgnoreCase(testCase.getStatus())) {
-                failures++;
-            }
-            else if ("ERROR".equalsIgnoreCase(testCase.getStatus())) {
-                errors++;
-            }
-            else if ("SKIPPED".equalsIgnoreCase(testCase.getStatus())) {
-                skipped++;
-            }
-        }
-
-        int declaredTests = integer(classNode, "tests");
-        int declaredFailures = integer(classNode, "failures");
-        int declaredErrors = integer(classNode, "errors");
-        int declaredSkipped = integer(classNode, "skipped");
-
-        testClass.setTests(declaredTests == tests || declaredTests == 0 ? tests : declaredTests);
-        testClass.setFailures(declaredFailures == failures || declaredFailures == 0 ? failures : declaredFailures);
-        testClass.setErrors(declaredErrors == errors || declaredErrors == 0 ? errors : declaredErrors);
-        testClass.setSkipped(declaredSkipped == skipped || declaredSkipped == 0 ? skipped : declaredSkipped);
-    }
-
-    private void recalculateSuiteSummary(ParsedTestReport report, JsonNode root) {
-        int totalTests = 0;
-        int totalFailures = 0;
-        int totalErrors = 0;
-        int totalSkipped = 0;
-
-        for (ParsedTestClass testClass : report.getTestClasses()) {
-            totalTests += testClass.getTests();
-            totalFailures += testClass.getFailures();
-            totalErrors += testClass.getErrors();
-            totalSkipped += testClass.getSkipped();
-        }
-
-        int declaredTests = integer(root, "totalTests");
-        int declaredFailures = integer(root, "totalFailures");
-        int declaredErrors = integer(root, "totalErrors");
-        int declaredSkipped = integer(root, "totalSkipped");
-
-        report.setTotalTests(declaredTests == totalTests || declaredTests == 0 ? totalTests : declaredTests);
-        report.setTotalFailures(declaredFailures == totalFailures || declaredFailures == 0 ? totalFailures : declaredFailures);
-        report.setTotalErrors(declaredErrors == totalErrors || declaredErrors == 0 ? totalErrors : declaredErrors);
-        report.setTotalSkipped(declaredSkipped == totalSkipped || declaredSkipped == 0 ? totalSkipped : declaredSkipped);
     }
 
     private String text(JsonNode node, String field) {

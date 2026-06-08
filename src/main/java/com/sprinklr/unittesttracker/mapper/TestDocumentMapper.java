@@ -34,11 +34,6 @@ public class TestDocumentMapper {
             document.setStackTrace(testCase.getStackTrace());
             document.setIsFlaky(false);
 
-            document.setClassTests(testClass.getTests());
-            document.setClassFailures(testClass.getFailures());
-            document.setClassErrors(testClass.getErrors());
-            document.setClassSkipped(testClass.getSkipped());
-
             document.setSuiteTotalTests(report.getTotalTests());
             document.setSuiteTotalFailures(report.getTotalFailures());
             document.setSuiteTotalErrors(report.getTotalErrors());

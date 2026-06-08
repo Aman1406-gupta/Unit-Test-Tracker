@@ -58,7 +58,7 @@ public class JUnitXmlParser {
             report.setMetadata(null);
 
             // suite-level fields
-            report.setSuiteName(suiteElement.getAttribute("suitename"));
+            report.setSuiteName(suiteElement.getAttribute("suiteName"));
             report.setTotalTests(parseIntSafe(suiteElement.getAttribute("tests")));
             report.setTotalErrors(parseIntSafe(suiteElement.getAttribute("errors")));
             report.setTotalFailures(parseIntSafe(suiteElement.getAttribute("failures")));
@@ -75,7 +75,7 @@ public class JUnitXmlParser {
 
                 Element testcase = (Element) node;
 
-                String className = testcase.getAttribute("className");
+                String className = testcase.getAttribute("classname");
                 if (className == null || className.isBlank()) {
                     className = "UnknownClass";
                 }

@@ -1,40 +1,56 @@
 package com.sprinklr.unittesttracker.service;
 
-import com.sprinklr.unittesttracker.mapper.TestDocumentMapper;
-import com.sprinklr.unittesttracker.model.TestExecutionDocument;
-import com.sprinklr.unittesttracker.parser.JUnitXmlParser;
-import com.sprinklr.unittesttracker.parser.MetadataParser;
+import com.sprinklr.unittesttracker.mapper.BuildMetadataMapper;
+import com.sprinklr.unittesttracker.mapper.TestChangeEventMapper;
+import com.sprinklr.unittesttracker.mapper.TestMapper;
+import com.sprinklr.unittesttracker.model.BuildMetadataDocument;
+import com.sprinklr.unittesttracker.model.TestChangeEventDocument;
+import com.sprinklr.unittesttracker.model.TestDocument;
+import com.sprinklr.unittesttracker.parser.JUnitParser;
+import com.sprinklr.unittesttracker.parser.BuildMetadataParser;
+import com.sprinklr.unittesttracker.parser.parseroutputobjects.ParsedBuildMetadata;
 import com.sprinklr.unittesttracker.parser.parseroutputobjects.ParsedTestReport;
-import com.sprinklr.unittesttracker.repository.TestExecutionRepository;
+import com.sprinklr.unittesttracker.repository.BuildMetadataRepository;
+import com.sprinklr.unittesttracker.repository.TestChangeEventRepository;
+import com.sprinklr.unittesttracker.repository.TestDocumentRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 
 @Service
 public class XmlReportIngestionService {
-    private final JUnitXmlParser parser;
-    private final TestDocumentMapper mapper;
-    private final TestExecutionRepository repository;
 
-    public XmlReportIngestionService(JUnitXmlParser parser, TestDocumentMapper mapper, TestExecutionRepository repository) {
-        this.parser = parser;
-        this.mapper = mapper;
-        this.repository = repository;
+    private final JUnitParser jUnitParser;
+    private final BuildMetadataParser buildMetadataParser;
+    private final TestChangeEventService testChangeEventService;
+    private final TestMapper testMapper;
+    private final BuildMetadataMapper buildMetadataMapper;
+    private final TestDocumentRepository testDocumentRepository;
+    private final BuildMetadataRepository buildMetadataRepository;
+
+    public XmlReportIngestionService(JUnitParser jUnitParser, BuildMetadataParser buildMetadataParser, TestChangeEventService testChangeEventService, TestMapper testMapper, TestChangeEventMapper testChangeEventMapper, BuildMetadataMapper buildMetadataMapper, TestDocumentRepository testDocumentRepository, TestChangeEventRepository testChangeEventRepository, BuildMetadataRepository buildMetadataRepository) {
+        this.jUnitParser = jUnitParser;
+        this.buildMetadataParser = buildMetadataParser;
+        this.testChangeEventService = testChangeEventService;
+        this.testMapper = testMapper;
+        this.buildMetadataMapper = buildMetadataMapper;
+        this.testDocumentRepository = testDocumentRepository;
+        this.buildMetadataRepository = buildMetadataRepository;
     }
 
-    public List<TestExecutionDocument> ingestXmlReport_Multipart(MultipartFile reportFile, MultipartFile metadataFile) {
-        ParsedTestReport parsedReport = parser.parseFiles(reportFile, metadataFile);
-        if(metadataFile != null && !metadataFile.isEmpty()) {
-            try {
-                MetadataParser.parse_metadata(parsedReport, metadataFile);
-            } catch (Exception e) {
-                throw new IllegalArgumentException("Failed to read metadata file: " + e.getMessage());
-            }
-        }
+    public List<Object> ingestJunit(MultipartFile reportFile, MultipartFile buildmetadataFile, MultipartFile testInfoFile) {
+        ParsedTestReport parsedReport = jUnitParser.parseFiles(reportFile, testInfoFile);
+        ParsedBuildMetadata parsedBuildMetadata = buildMetadataParser.parseBuildMetadata(buildmetadataFile, parsedReport);
 
-        List<TestExecutionDocument> documents = mapper.toDocuments(parsedReport);
-        repository.saveAll(documents);
+        List<BuildMetadataDocument> buildDocuments = buildMetadataMapper.toBuildDocuments(parsedBuildMetadata);
+        List<TestDocument> testDocuments = testMapper.toTestDocuments(parsedReport, parsedBuildMetadata);
 
-        return documents;
+        testDocumentRepository.saveAll(testDocuments);
+        buildMetadataRepository.saveAll(buildDocuments);
+
+        testChangeEventService.trackChanges_ingestionMode(parsedReport, parsedBuildMetadata, testDocuments);
+        System.out.println("Saved testChangeEventDocuments");
+        
+        return List.of(buildDocuments, testDocuments);
     }
 }

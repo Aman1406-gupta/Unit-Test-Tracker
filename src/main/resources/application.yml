@@ -2,6 +2,11 @@ spring:
   application:
     name: unit-test-tracker
 
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 10MB
+
   elasticsearch:
       uris: http://localhost:9200
 
@@ -18,3 +23,6 @@ management:
     web:
       exposure:
         include: "*"
+
+github:
+  token: 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

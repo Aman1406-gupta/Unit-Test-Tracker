@@ -4,22 +4,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class ParsedTestReport {
-    private Metadata metadata;
     private String suiteName;
-    private int totalTests;
-    private int totalFailures;
-    private int totalErrors;
-    private int totalSkipped;
+    private Integer totalTests;
+    private Integer totalFailures;
+    private Integer totalSkipped;
+    private Integer totalPassed;
 
     private List<ParsedTestClass> testClasses = new ArrayList<>();
-
-    public Metadata getMetadata() {
-        return metadata;
-    }
-
-    public void setMetadata(Metadata metadata) {
-        this.metadata = metadata;
-    }
 
     public String getSuiteName() {
         return suiteName;
@@ -37,36 +28,35 @@ public class ParsedTestReport {
         this.testClasses = testClasses;
     }
 
-    public int getTotalTests() {
+    public Integer getTotalTests() {
         return totalTests;
     }
 
-    public void setTotalTests(int totalTests) {
+    public void setTotalTests(Integer totalTests) {
         this.totalTests = totalTests;
     }
 
-    public int getTotalFailures() {
+    public Integer getTotalFailures() {
         return totalFailures;
     }
 
-    public void setTotalFailures(int totalFailures) {
+    public void setTotalFailures(Integer totalFailures) {
         this.totalFailures = totalFailures;
     }
 
-    public int getTotalErrors() {
-        return totalErrors;
-    }
-
-    public void setTotalErrors(int totalErrors) {
-        this.totalErrors = totalErrors;
-    }
-
-    public int getTotalSkipped() {
+    public Integer getTotalSkipped() {
         return totalSkipped;
     }
-
-    public void setTotalSkipped(int totalSkipped) {
+    
+    public void setTotalSkipped(Integer totalSkipped) {
         this.totalSkipped = totalSkipped;
     }
 
+    public Integer getTotalPassed() {
+        return totalPassed;
+    }
+
+    public void setTotalPassed(Integer totalPassed) {
+        this.totalPassed = totalPassed;
+    }
 }

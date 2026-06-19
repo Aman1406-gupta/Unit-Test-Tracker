@@ -8,4 +8,5 @@ import java.util.Optional;
 
 public interface TestDocumentRepository extends ElasticsearchRepository<TestDocument, String> {
     Optional<TestDocument> findByTestID(String testID);
+    Optional<TestDocument> deleteByTestID(String testID);
 }

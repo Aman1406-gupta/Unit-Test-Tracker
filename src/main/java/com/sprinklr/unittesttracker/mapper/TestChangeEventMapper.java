@@ -12,10 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.File;
-import java.util.List;
-import java.util.ArrayList;
-import java.util.Set;
-import java.util.HashSet;
+import java.util.*;
 import java.time.Instant;
 
 @Component
@@ -37,6 +34,7 @@ public class TestChangeEventMapper {
                 processedTestIDsInCurrentBuild.add(testID);
 
                 TestDocument historyDoc = testDocumentRepository.findByTestID(testID).orElse(null);
+                System.out.println("Processing testID: " + testID + " with historyDoc: " + (historyDoc != null ? "found" : "not found"));
                 TestChangeEventDocument.ChangeType computedChangeType = TestChangeEventDocument.ChangeType.UNCHANGED;
                 String previousStatus = null;
                 String previousCommitSha = null;
@@ -52,6 +50,7 @@ public class TestChangeEventMapper {
 
                     if (prevLinesSpan != currLinesSpan) {
                         computedChangeType = TestChangeEventDocument.ChangeType.MODIFIED;
+                        System.out.println("Content change detected for testID: " + testID + " with changeType: Modified");
                     } else {
                         boolean hasContentChanged = checkBlockContentDiff(
                                 historyDoc.getTestCaseFilePath(),
@@ -60,6 +59,7 @@ public class TestChangeEventMapper {
                         );
                         if (hasContentChanged) {
                             computedChangeType = TestChangeEventDocument.ChangeType.MODIFIED;
+                            System.out.println("Content change detected for testID: " + testID + " with changeType: Modified");
                         }
                     }
                 }
@@ -83,15 +83,12 @@ public class TestChangeEventMapper {
                 String generatedId = java.util.UUID.nameUUIDFromBytes((detectedAt.toString() + parsedTestReport.getBuildID() + testID).getBytes()).toString();
                 document.setEventID(generatedId);
 
-                System.out.println("previousStatus: " + previousStatus);
-                System.out.println("currentStatus: " + parsedTestCase.getStatus());
-                System.out.println("previousCommitSha: " + previousCommitSha);
-                System.out.println("currentCommitSha: " + parsedTestCase.getCurrentCommitSha());
-
                 testChangeEventDocuments.add(document);
                 System.out.println("Added TestChangeEventDocument for testID: " + testID + " with changeType: " + computedChangeType);
             }
         }
+
+        System.out.println("All changes tracked Successfully");
 
         List<TestDocument> allStoredTests = new ArrayList<>();
         testDocumentRepository.findAll().forEach(allStoredTests::add);
@@ -114,7 +111,10 @@ public class TestChangeEventMapper {
                 deletedDocument.setEventID(generatedId);
 
                 testChangeEventDocuments.add(deletedDocument);
+                testDocumentRepository.deleteByTestID(storedTest.getTestID());
+
                 System.out.println("Added TestChangeEventDocument for deleted testID: " + storedTest.getTestID() + " with changeType: DELETED");
+                System.out.println("Deleted TestDocument for testID: " + storedTest.getTestID() + " from repository");
             }
         }
 
@@ -140,6 +140,8 @@ public class TestChangeEventMapper {
             pb.redirectErrorStream(true);
             Process process = pb.start();
 
+            System.out.println("Executing git diff command: " + String.join(" ", command) + " in directory: " + (gitDir != null ? gitDir.getAbsolutePath() : "current working directory"));
+
             boolean changesInLinesRange = false;
             try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
                 String line;
@@ -147,14 +149,18 @@ public class TestChangeEventMapper {
                 int currentRightLine = 0;
 
                 while ((line = reader.readLine()) != null) {
+                    System.out.println("Git diff output: " + line);
                     if (line.startsWith("@@")) {
                         String[] parts = line.split(" ");
                         String leftPart = parts[1].substring(1);
                         String rightPart = parts[2].substring(1);
                         currentLeftLine = Integer.parseInt(leftPart.split(",")[0]);
                         currentRightLine = Integer.parseInt(rightPart.split(",")[0]);
+                        System.out.println("Parsed hunk header: " + line + " with left start line: " + currentLeftLine + " and right start line: " + currentRightLine);
                         continue;
                     }
+
+                    System.out.println("previous lines:" + pStart + " " + pEnd + " " + "current lines:" + cStart + " " + cEnd + " ");
 
                     if (line.startsWith("-") && !line.startsWith("---")) {
                         if (currentLeftLine >= pStart && currentLeftLine <= pEnd) {
@@ -171,9 +177,15 @@ public class TestChangeEventMapper {
                         currentRightLine++;
                     }
                 }
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to read git diff output: " + e.getMessage());
             }
-            process.waitFor();
-            System.out.println("Sucessfully evaluated text modifications structural block for file: "+ filePath);
+            process.getInputStream().close();
+            System.out.println("Function call for file : " + filePath);
+            boolean finished = process.waitFor(120, java.util.concurrent.TimeUnit.SECONDS);
+            if(!finished) {
+                throw new RuntimeException("Git process timed out and was forcibly killed.");
+            }
             return changesInLinesRange;
         } catch (Exception e) {
             throw new RuntimeException("Failed evaluating text modifications structural block: " + e.getMessage());

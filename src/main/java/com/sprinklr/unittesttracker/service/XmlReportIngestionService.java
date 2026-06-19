@@ -32,9 +32,10 @@ public class XmlReportIngestionService {
         try {
             ParsedTestReport parsedReport = jUnitParser.parseFiles(reportFile, testInfoFile);
             List<TestDocument> testDocuments = testMapper.toTestDocuments(parsedReport);
-            testDocumentRepository.saveAll(testDocuments);
 
             testChangeEventService.trackChanges(parsedReport);
+
+            testDocumentRepository.saveAll(testDocuments);
         } catch (Exception e) {
             throw new RuntimeException("Failed to ingest JUnit report: " + e.getMessage(), e);
         }

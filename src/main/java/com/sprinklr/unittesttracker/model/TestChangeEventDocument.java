@@ -11,7 +11,7 @@ import java.time.Instant;
 
 @Document(indexName = "test_change_event")
 public class TestChangeEventDocument {
-    @Field(type = FieldType.Keyword)
+
     @Id
     private String eventID;
 
@@ -22,14 +22,6 @@ public class TestChangeEventDocument {
     @Field(type = FieldType.Keyword)
     @NotBlank
     private String buildID;
-
-    @Field(type = FieldType.Keyword)
-    @NotBlank
-    private String repositoryURL;
-    
-    @Field(type = FieldType.Keyword)
-    @NotBlank
-    private String branchName;
 
     @Field(type = FieldType.Keyword)
     @NotBlank
@@ -46,8 +38,13 @@ public class TestChangeEventDocument {
     private String previousCommitSha;
 
     @Field(type = FieldType.Keyword)
-    @NotNull
     private String currentCommitSha;
+
+    @Field(type = FieldType.Keyword)
+    private String previousStatus;
+
+    @Field(type = FieldType.Keyword)
+    private String currentStatus;
 
     @Field(type = FieldType.Date, format = DateFormat.date_time)
     @NotNull
@@ -56,7 +53,7 @@ public class TestChangeEventDocument {
     public String getEventID() {
         return eventID;
     }
-    
+
     public void setEventID(String eventID) {
         this.eventID = eventID;
     }
@@ -75,22 +72,6 @@ public class TestChangeEventDocument {
     
     public void setBuildID(String buildID) {
         this.buildID = buildID;
-    }
-    
-    public String getRepositoryURL() {
-        return repositoryURL;
-    }
-    
-    public void setRepositoryURL(String repositoryURL) {
-        this.repositoryURL = repositoryURL;
-    }
-    
-    public String getBranchName() {
-        return branchName;
-    }
-    
-    public void setBranchName(String branchName) {
-        this.branchName = branchName;
     }
     
     public ChangeType getChangeType() {
@@ -115,6 +96,22 @@ public class TestChangeEventDocument {
 
     public void setCurrentCommitSha(String currentCommitSha) {
         this.currentCommitSha = currentCommitSha;
+    }
+
+    public String getPreviousStatus() {
+        return previousStatus;
+    }
+
+    public void setPreviousStatus(String previousStatus) {
+        this.previousStatus = previousStatus;
+    }
+
+    public String getCurrentStatus() {
+        return currentStatus;
+    }
+
+    public void setCurrentStatus(String currentStatus) {
+        this.currentStatus = currentStatus;
     }
     
     public Instant getDetectedAt() {

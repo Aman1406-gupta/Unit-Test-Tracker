@@ -5,10 +5,10 @@ import java.util.List;
 
 public class ParsedTestReport {
     private String suiteName;
-    private Integer totalTests;
-    private Integer totalFailures;
-    private Integer totalSkipped;
-    private Integer totalPassed;
+    private String buildID;
+    private String repository_url;
+    private String branchName;
+    private String jobName;
 
     private List<ParsedTestClass> testClasses = new ArrayList<>();
 
@@ -28,35 +28,35 @@ public class ParsedTestReport {
         this.testClasses = testClasses;
     }
 
-    public Integer getTotalTests() {
-        return totalTests;
+    public String getBuildID() {
+        return buildID;
     }
 
-    public void setTotalTests(Integer totalTests) {
-        this.totalTests = totalTests;
+    public void setBuildID(String buildID) {
+        this.buildID = buildID;
     }
 
-    public Integer getTotalFailures() {
-        return totalFailures;
+    public String getRepository_url() {
+        return repository_url;
     }
 
-    public void setTotalFailures(Integer totalFailures) {
-        this.totalFailures = totalFailures;
+    public void setRepository_url(String repository_url) {
+        this.repository_url = repository_url;
     }
 
-    public Integer getTotalSkipped() {
-        return totalSkipped;
-    }
-    
-    public void setTotalSkipped(Integer totalSkipped) {
-        this.totalSkipped = totalSkipped;
+    public String getBranchName() {
+        return branchName;
     }
 
-    public Integer getTotalPassed() {
-        return totalPassed;
+    public void setBranchName(String branchName) {
+        this.branchName = branchName;
     }
 
-    public void setTotalPassed(Integer totalPassed) {
-        this.totalPassed = totalPassed;
+    public String getJobName() {
+        return jobName;
+    }
+
+    public void setJobName(String jobName) {
+        this.jobName = jobName;
     }
 }

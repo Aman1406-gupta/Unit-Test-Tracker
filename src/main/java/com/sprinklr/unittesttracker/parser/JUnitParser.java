@@ -49,20 +49,34 @@ public class JUnitParser {
             if (suiteName == null || suiteName.isBlank()) {
                 suiteName = "UnknownSuite";
             }
+            String buildID = root.getAttribute("buildID");
+            if (buildID == null || buildID.isBlank()) {
+                buildID = "UnknownBuildID";
+            }
+            String repositoryUrl = root.getAttribute("repositoryUrl");
+            if (repositoryUrl == null || repositoryUrl.isBlank()) {
+                repositoryUrl = "UnknownRepositoryUrl";
+            }
+            String branchName = root.getAttribute("branchName");
+            if (branchName == null || branchName.isBlank()) {
+                branchName = "UnknownBranchName";
+            }
+            String jobName = root.getAttribute("jobName");
+            if (jobName == null || jobName.isBlank()) {
+                jobName = "UnknownJobName";
+            }
 
             ObjectMapper objectMapper = new ObjectMapper();
             JsonNode testInfoRoot = objectMapper.readTree(testInfoContent.getBytes(StandardCharsets.UTF_8));
 
             ParsedTestReport report = new ParsedTestReport();
             report.setSuiteName(suiteName);
-
-            int totalFailure = 0;
-            int totalTests = 0;
-            int totalSkipped = 0;
-            int totalPassed = 0;
+            report.setBuildID(buildID);
+            report.setRepository_url(repositoryUrl);
+            report.setBranchName(branchName);
+            report.setJobName(jobName);
 
             Map<String, ParsedTestClass> classMap = new LinkedHashMap<>();
-
             NodeList testclassNodes = root.getElementsByTagName("testclass");
 
             for (int i = 0; i < testclassNodes.getLength(); i++) {
@@ -78,6 +92,8 @@ public class JUnitParser {
                 }
 
                 final String finalClassName = className;
+                String simpleClassName = className.contains(".") ? className.substring(className.lastIndexOf('.') + 1) : className;
+
                 ParsedTestClass parsedClass = classMap.computeIfAbsent(className, key -> {
                     ParsedTestClass c = new ParsedTestClass();
                     c.setClassName(key);
@@ -95,17 +111,14 @@ public class JUnitParser {
 
                     Element testcase = (Element) tcNode;
                     ParsedTestCase testCase = new ParsedTestCase();
-
-                    String testName = testcase.getAttribute("name");
-                    testCase.setTestName(testName);
                     testCase.setClassName(finalClassName);
 
-                    String testID = testcase.getAttribute("testID");
-                    testCase.setTestID(testID);
+                    String methodName = testcase.getAttribute("methodname");
+                    testCase.setMethodName(methodName);
 
                     JsonNode test_info_node = null;
                     for (JsonNode infoNode : testInfoRoot) {
-                        if (testID != null && testID.equals(infoNode.get("testID").asText())) {
+                        if (simpleClassName.equals(infoNode.path("className").asText()) && methodName != null && methodName.equals(infoNode.path("methodName").asText())) {
                             test_info_node = infoNode;
                             break;
                         }
@@ -114,16 +127,13 @@ public class JUnitParser {
                         continue;
                     }
 
-                    String methodName = testcase.getAttribute("methodname");
-                    testCase.setMethodName(methodName);
-
                     String duration = testcase.getAttribute("time");
                     testCase.setDuration(parseDoubleSafe(duration));
 
                     String ts = testcase.getAttribute("timestamp_execution");
                     testCase.setTimestamp_execution(ts);
 
-                    // Map fields out of JSON payload node
+                    testCase.setTestID(test_info_node.path("testId").asText(null));
                     testCase.setTestCaseFilePath(test_info_node.path("testCaseFilePath").asText(null));
                     testCase.setModuleName(test_info_node.path("moduleName").asText(null));
 
@@ -134,14 +144,16 @@ public class JUnitParser {
                         testCase.setEndLine(test_info_node.get("endLine").asInt());
                     }
 
-                    testCase.setMethodOwner(test_info_node.path("methodOwner").asText(null));
-                    testCase.setResolvedOwner(test_info_node.path("resolvedOwner").asText(null));
                     testCase.setOwnershipSource(test_info_node.path("ownershipSource").asText(null));
+
+                    if (test_info_node.has("confidenceScore") && !test_info_node.get("confidenceScore").isNull()) {
+                        testCase.setConfidenceScore(test_info_node.get("confidenceScore").asDouble());
+                    }
+
                     testCase.setCreatedAt(test_info_node.path("createdAt").asText(null));
                     testCase.setLastModifiedAt(test_info_node.path("lastModifiedAt").asText(null));
                     testCase.setLastModifiedBy(test_info_node.path("lastModifiedBy").asText(null));
                     testCase.setCurrentCommitSha(test_info_node.path("currentCommitSha").asText(null));
-                    testCase.setCurrentLifecycleStatus(test_info_node.path("currentLifecycleStatus").asText(null));
 
                     String status = "PASSED";
                     String errorMessage = null;
@@ -168,26 +180,32 @@ public class JUnitParser {
                         }
                     }
 
-                    totalTests++;
-                    if ("FAILED".equals(status)) totalFailure++;
-                    else if ("SKIPPED".equals(status)) totalSkipped++;
-
                     testCase.setStatus(status);
                     testCase.setErrorMessage(errorMessage);
                     testCase.setStackTrace(stackTrace);
+
+                    String lifecycleStatus = "ACTIVE";
+                    if ("SKIPPED".equals(status)) {
+                        lifecycleStatus = "INACTIVE";
+                    } else {
+                        String lastModStr = test_info_node.path("lastModifiedAt").asText(null);
+                        if (lastModStr != null && !lastModStr.isBlank()) {
+                            java.time.Instant lastModified = java.time.Instant.parse(lastModStr);
+                            java.time.Instant sixMonthsAgo = java.time.Instant.now().minus(180, java.time.temporal.ChronoUnit.DAYS);
+
+                            if (lastModified.isBefore(sixMonthsAgo)) {
+                                lifecycleStatus = "INACTIVE";
+                            }
+                        }
+                    }
+
+                    testCase.setCurrentLifecycleStatus(lifecycleStatus);
 
                     parsedClass.getTestCases().add(testCase);
                 }
             }
 
-            totalPassed = totalTests - totalFailure - totalSkipped;
-
             report.setTestClasses(new ArrayList<>(classMap.values()));
-            report.setTotalTests(totalTests);
-            report.setTotalFailures(totalFailure);
-            report.setTotalSkipped(totalSkipped);
-            report.setTotalPassed(totalPassed);
-
             return report;
         } catch (Exception e) {
             throw new RuntimeException("Failed to parse structural custom XML report", e);

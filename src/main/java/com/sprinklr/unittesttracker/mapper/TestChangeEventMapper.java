@@ -1,23 +1,22 @@
 package com.sprinklr.unittesttracker.mapper;
 
 import com.sprinklr.unittesttracker.model.TestChangeEventDocument;
-import com.sprinklr.unittesttracker.parser.parseroutputobjects.ParsedBuildMetadata;
+import com.sprinklr.unittesttracker.model.TestDocument;
 import com.sprinklr.unittesttracker.parser.parseroutputobjects.ParsedTestCase;
 import com.sprinklr.unittesttracker.parser.parseroutputobjects.ParsedTestClass;
 import com.sprinklr.unittesttracker.parser.parseroutputobjects.ParsedTestReport;
-import org.springframework.stereotype.Component;
-import org.springframework.beans.factory.annotation.Autowired;
-import com.sprinklr.unittesttracker.model.TestDocument;
 import com.sprinklr.unittesttracker.repository.TestChangeEventRepository;
 import com.sprinklr.unittesttracker.repository.TestDocumentRepository;
+import org.springframework.stereotype.Component;
+import org.springframework.beans.factory.annotation.Autowired;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
+import java.io.File;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.Set;
+import java.util.HashSet;
 import java.time.Instant;
-import java.util.regex.Pattern;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 @Component
 public class TestChangeEventMapper {
@@ -28,145 +27,167 @@ public class TestChangeEventMapper {
     @Autowired
     private TestChangeEventRepository testChangeEventRepository;
 
-    private static final Pattern COMMIT_SHA_PATTERN = Pattern.compile("^[0-9a-fA-F]{40}$");
-
-    public List<TestChangeEventDocument> toTestChangeEventDocuments(ParsedTestReport parsedTestReport, ParsedBuildMetadata parsedBuildMetadata, List<TestDocument> testDocuments) {
+    public List<TestChangeEventDocument> toTestChangeEventDocuments(ParsedTestReport parsedTestReport) {
         List<TestChangeEventDocument> testChangeEventDocuments = new ArrayList<>();
-        Map<String, TestDocument> testDocumentMap = testDocuments.stream().collect(Collectors.toMap(TestDocument::getTestID, d -> d, (a, b) -> a));
+        Set<String> processedTestIDsInCurrentBuild = new HashSet<>();
 
         for (ParsedTestClass parsedTestClass : parsedTestReport.getTestClasses()) {
             for (ParsedTestCase parsedTestCase : parsedTestClass.getTestCases()) {
+                String testID = parsedTestCase.getTestID();
+                processedTestIDsInCurrentBuild.add(testID);
 
-                TestDocument testDocument = testDocumentMap.get(parsedTestCase.getTestID());
-                if(testDocument == null) {
+                TestDocument historyDoc = testDocumentRepository.findByTestID(testID).orElse(null);
+                TestChangeEventDocument.ChangeType computedChangeType = TestChangeEventDocument.ChangeType.UNCHANGED;
+                String previousStatus = null;
+                String previousCommitSha = null;
+
+                if (historyDoc == null) {
+                    computedChangeType = TestChangeEventDocument.ChangeType.ADDED;
+                } else {
+                    previousStatus = historyDoc.getStatus();
+                    previousCommitSha = historyDoc.getCurrentCommitSha();
+
+                    int prevLinesSpan = historyDoc.getEndLine() - historyDoc.getStartLine();
+                    int currLinesSpan = parsedTestCase.getEndLine() - parsedTestCase.getStartLine();
+
+                    if (prevLinesSpan != currLinesSpan) {
+                        computedChangeType = TestChangeEventDocument.ChangeType.MODIFIED;
+                    } else {
+                        boolean hasContentChanged = checkBlockContentDiff(
+                                historyDoc.getTestCaseFilePath(),
+                                historyDoc.getStartLine(), historyDoc.getEndLine(),
+                                parsedTestCase.getStartLine(), parsedTestCase.getEndLine()
+                        );
+                        if (hasContentChanged) {
+                            computedChangeType = TestChangeEventDocument.ChangeType.MODIFIED;
+                        }
+                    }
+                }
+
+                if (computedChangeType == TestChangeEventDocument.ChangeType.UNCHANGED) {
                     continue;
                 }
-                GitHistoryResult gitResult = executeGitLog(testDocument);
 
-                if (gitResult.changeType == TestChangeEventDocument.ChangeType.UNCHANGED) {
-                    System.out.println("No change");
-                }
-
-                TestChangeEventDocument document =testChangeEventRepository.findByTestIDAndBuildID(parsedTestCase.getTestID(), parsedBuildMetadata.getBuildID()).orElseGet(TestChangeEventDocument::new);
+                TestChangeEventDocument document = new TestChangeEventDocument();
                 Instant detectedAt = Instant.now();
 
-                document.setTestID(parsedTestCase.getTestID());
-                document.setBuildID(parsedBuildMetadata.getBuildID());
-                document.setRepositoryURL(parsedBuildMetadata.getRepositoryUrl());
-                document.setBranchName(parsedBuildMetadata.getBranchName());
-                document.setChangeType(gitResult.changeType);
-                document.setPreviousCommitSha(gitResult.previousCommitSha);
+                document.setTestID(testID);
+                document.setBuildID(parsedTestReport.getBuildID());
+                document.setChangeType(computedChangeType);
+                document.setPreviousCommitSha(previousCommitSha);
                 document.setCurrentCommitSha(parsedTestCase.getCurrentCommitSha());
+                document.setPreviousStatus(previousStatus);
+                document.setCurrentStatus(parsedTestCase.getStatus());
                 document.setDetectedAt(detectedAt);
 
-                if(document.getEventID() == null) {
-                    String eventID = java.util.UUID.nameUUIDFromBytes((detectedAt.toString() + parsedBuildMetadata.getBuildID() + parsedTestCase.getTestID()).getBytes()).toString();
-                    document.setEventID(eventID);
-                }
+                String generatedId = java.util.UUID.nameUUIDFromBytes((detectedAt.toString() + parsedTestReport.getBuildID() + testID).getBytes()).toString();
+                document.setEventID(generatedId);
+
+                System.out.println("previousStatus: " + previousStatus);
+                System.out.println("currentStatus: " + parsedTestCase.getStatus());
+                System.out.println("previousCommitSha: " + previousCommitSha);
+                System.out.println("currentCommitSha: " + parsedTestCase.getCurrentCommitSha());
 
                 testChangeEventDocuments.add(document);
+                System.out.println("Added TestChangeEventDocument for testID: " + testID + " with changeType: " + computedChangeType);
+            }
+        }
+
+        List<TestDocument> allStoredTests = new ArrayList<>();
+        testDocumentRepository.findAll().forEach(allStoredTests::add);
+
+        for (TestDocument storedTest : allStoredTests) {
+            if (!processedTestIDsInCurrentBuild.contains(storedTest.getTestID())) {
+                TestChangeEventDocument deletedDocument = new TestChangeEventDocument();
+                Instant detectedAt = Instant.now();
+
+                deletedDocument.setTestID(storedTest.getTestID());
+                deletedDocument.setBuildID(parsedTestReport.getBuildID());
+                deletedDocument.setChangeType(TestChangeEventDocument.ChangeType.DELETED);
+                deletedDocument.setPreviousCommitSha(storedTest.getCurrentCommitSha());
+                deletedDocument.setCurrentCommitSha(null);
+                deletedDocument.setPreviousStatus(storedTest.getStatus());
+                deletedDocument.setCurrentStatus(null);
+                deletedDocument.setDetectedAt(detectedAt);
+
+                String generatedId = java.util.UUID.nameUUIDFromBytes((detectedAt.toString() + parsedTestReport.getBuildID() + storedTest.getTestID()).getBytes()).toString();
+                deletedDocument.setEventID(generatedId);
+
+                testChangeEventDocuments.add(deletedDocument);
+                System.out.println("Added TestChangeEventDocument for deleted testID: " + storedTest.getTestID() + " with changeType: DELETED");
             }
         }
 
         return testChangeEventDocuments;
     }
 
-    public TestChangeEventDocument toTestChangeEvent(String testID, String buildID) {
-        TestDocument testDocument = testDocumentRepository.findByTestIDAndBuildID(testID, buildID).orElseThrow(() -> new RuntimeException("Test document not found"));
-
-        GitHistoryResult gitResult = executeGitLog(testDocument);
-
-        if (gitResult.changeType == TestChangeEventDocument.ChangeType.UNCHANGED) {
-            System.out.println("No change");
-        }
-
-        TestChangeEventDocument document = testChangeEventRepository.findByTestIDAndBuildID(testID, buildID).orElseGet(TestChangeEventDocument::new);
-        Instant detectedAt = Instant.now();
-
-        document.setTestID(testID);
-        document.setBuildID(buildID);
-        document.setChangeType(gitResult.changeType);
-        document.setPreviousCommitSha(gitResult.previousCommitSha);
-        document.setCurrentCommitSha(gitResult.currentCommitSha);
-        document.setDetectedAt(detectedAt);
-
-        if(document.getEventID() == null) {
-            String eventID = java.util.UUID.nameUUIDFromBytes((detectedAt.toString() + buildID + testID).getBytes()).toString();
-            document.setEventID(eventID);
-        }
-
-        return document;
-    }
-
-    private GitHistoryResult executeGitLog(TestDocument testDocument) {
-        GitHistoryResult result = new GitHistoryResult();
-
+    private boolean checkBlockContentDiff(String filePath, int pStart, int pEnd, int cStart, int cEnd) {
         List<String> command = new ArrayList<>();
         command.add("git");
-        command.add("log");
-        command.add("-p");
-        command.add("--format=%H");
-        command.add("-L");
-        command.add(String.format("%d,%d:%s", testDocument.getStartLine(), testDocument.getEndLine(), testDocument.getTestCaseFilePath()));
+        command.add("diff");
+        command.add("HEAD");
+        command.add("--");
+        command.add(filePath);
 
-        List<String> commits = new ArrayList<>();
         try {
-            ProcessBuilder processBuilder = new ProcessBuilder(command);
-            processBuilder.redirectErrorStream(false);
-            Process process = processBuilder.start();
+            ProcessBuilder pb = new ProcessBuilder(command);
 
-            int addedCount = 0;
-            int deletedCount = 0;
-            boolean hasDiff = false;
+            File gitDir = findGitRoot(new File(System.getProperty("user.dir")));
+            if (gitDir != null) {
+                pb.directory(gitDir);
+            }
 
+            pb.redirectErrorStream(true);
+            Process process = pb.start();
+
+            boolean changesInLinesRange = false;
             try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
                 String line;
-                while ((line = reader.readLine()) != null) {
-                    line = line.trim();
+                int currentLeftLine = 0;
+                int currentRightLine = 0;
 
-                    if (COMMIT_SHA_PATTERN.matcher(line).matches()) {
-                        commits.add(line);
-                        if (hasDiff && commits.size() > 2) {
-                            break;
-                        }
+                while ((line = reader.readLine()) != null) {
+                    if (line.startsWith("@@")) {
+                        String[] parts = line.split(" ");
+                        String leftPart = parts[1].substring(1);
+                        String rightPart = parts[2].substring(1);
+                        currentLeftLine = Integer.parseInt(leftPart.split(",")[0]);
+                        currentRightLine = Integer.parseInt(rightPart.split(",")[0]);
+                        continue;
                     }
 
-                    if (line.startsWith("+") && !line.startsWith("+++")) {
-                        addedCount++;
-                        hasDiff = true;
-                    } else if (line.startsWith("-") && !line.startsWith("---")) {
-                        deletedCount++;
-                        hasDiff = true;
+                    if (line.startsWith("-") && !line.startsWith("---")) {
+                        if (currentLeftLine >= pStart && currentLeftLine <= pEnd) {
+                            changesInLinesRange = true;
+                        }
+                        currentLeftLine++;
+                    } else if (line.startsWith("+") && !line.startsWith("+++")) {
+                        if (currentRightLine >= cStart && currentRightLine <= cEnd) {
+                            changesInLinesRange = true;
+                        }
+                        currentRightLine++;
+                    } else {
+                        currentLeftLine++;
+                        currentRightLine++;
                     }
                 }
             }
             process.waitFor();
-
-            if (!commits.isEmpty()) {
-                result.currentCommitSha = commits.get(0);
-                if (commits.size() > 1) {
-                    result.previousCommitSha = commits.get(1);
-                }
-            }
-
-            if (addedCount > 0 && deletedCount == 0) {
-                result.changeType = TestChangeEventDocument.ChangeType.ADDED;
-            } else if (addedCount > 0 && deletedCount > 0) {
-                result.changeType = TestChangeEventDocument.ChangeType.MODIFIED;
-            } else if (deletedCount > 0 && addedCount == 0) {
-                result.changeType = TestChangeEventDocument.ChangeType.DELETED;
-            }
-
+            System.out.println("Sucessfully evaluated text modifications structural block for file: "+ filePath);
+            return changesInLinesRange;
         } catch (Exception e) {
-            result.changeType = TestChangeEventDocument.ChangeType.UNCHANGED;
+            throw new RuntimeException("Failed evaluating text modifications structural block: " + e.getMessage());
         }
-
-        return result;
     }
 
-    private static class GitHistoryResult {
-        String currentCommitSha = null;
-        String previousCommitSha = null;
-        TestChangeEventDocument.ChangeType changeType = TestChangeEventDocument.ChangeType.UNCHANGED;
+    private File findGitRoot(File currentDir) {
+        while (currentDir != null) {
+            File gitDir = new File(currentDir, ".git");
+            if (gitDir.exists() && gitDir.isDirectory()) {
+                return currentDir;
+            }
+            currentDir = currentDir.getParentFile();
+        }
+        return null;
     }
 }

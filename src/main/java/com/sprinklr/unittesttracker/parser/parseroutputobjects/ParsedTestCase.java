@@ -1,8 +1,7 @@
 package com.sprinklr.unittesttracker.parser.parseroutputobjects;
 
 public class ParsedTestCase {
-    private String testID; 
-    private String testName; 
+    private String testID;
     private String className;  
     private String methodName; 
     private String status; 
@@ -13,10 +12,9 @@ public class ParsedTestCase {
     private String testCaseFilePath; 
     private String moduleName; 
     private int startLine; 
-    private int endLine; 
-    private String methodOwner; 
-    private String resolvedOwner; 
-    private String ownershipSource; 
+    private int endLine;
+    private String ownershipSource;
+    private Double confidenceScore;
     private String createdAt;
     private String lastModifiedAt;
     private String lastModifiedBy; 
@@ -29,14 +27,6 @@ public class ParsedTestCase {
 
     public void setTestID(String testID) {
         this.testID = testID;
-    }
-
-    public String getTestName() {
-        return testName;
-    }
-
-    public void setTestName(String testName) {
-        this.testName = testName;
     }
 
     public String getClassName() {
@@ -127,20 +117,12 @@ public class ParsedTestCase {
         this.endLine = endLine;
     }
 
-    public String getMethodOwner() {
-        return methodOwner;
+    public Double getConfidenceScore() {
+        return confidenceScore;
     }
 
-    public void setMethodOwner(String methodOwner) {
-        this.methodOwner = methodOwner;
-    }
-
-    public String getResolvedOwner() {
-        return resolvedOwner;
-    }
-
-    public void setResolvedOwner(String resolvedOwner) {
-        this.resolvedOwner = resolvedOwner;
+    public void setConfidenceScore(Double confidenceScore) {
+        this.confidenceScore = confidenceScore;
     }
 
     public String getOwnershipSource() {

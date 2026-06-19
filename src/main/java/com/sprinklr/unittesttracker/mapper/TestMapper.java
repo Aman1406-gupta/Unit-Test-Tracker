@@ -1,7 +1,6 @@
 package com.sprinklr.unittesttracker.mapper;
 
 import com.sprinklr.unittesttracker.model.TestDocument;
-import com.sprinklr.unittesttracker.parser.parseroutputobjects.ParsedBuildMetadata;
 import com.sprinklr.unittesttracker.parser.parseroutputobjects.ParsedTestCase;
 import com.sprinklr.unittesttracker.parser.parseroutputobjects.ParsedTestClass;
 import com.sprinklr.unittesttracker.parser.parseroutputobjects.ParsedTestReport;
@@ -16,7 +15,7 @@ import java.util.List;
 @Component
 public class TestMapper {
 
-    public List<TestDocument> toTestDocuments(ParsedTestReport parsedTestReport, ParsedBuildMetadata parsedBuildMetadata) {
+    public List<TestDocument> toTestDocuments(ParsedTestReport parsedTestReport) {
         List<TestDocument> testDocuments = new ArrayList<>();
         Instant baseline = Instant.parse("2026-06-17T13:40:09Z");
         Instant oneWeekAgo = baseline.minus(7, ChronoUnit.DAYS);
@@ -73,35 +72,31 @@ public class TestMapper {
                     owners = owners.subList(0, 6);
                 }
 
-                String executionID = parsedBuildMetadata.getBuildID() + "_" + parsedTestCase.getTestID();
-                document.setExecutionID(executionID);
                 document.setTestID(parsedTestCase.getTestID());
-                document.setBuildID(parsedBuildMetadata.getBuildID());
-                document.setTestName(parsedTestCase.getTestName());
+                document.setBuildID(parsedTestReport.getBuildID());
+                document.setRepositoryUrl(parsedTestReport.getRepository_url());
+                document.setBranchName(parsedTestReport.getBranchName());
+                document.setJobName(parsedTestReport.getJobName());
                 document.setClassName(parsedTestCase.getClassName());
                 document.setMethodName(parsedTestCase.getMethodName());
-                document.setTestCaseFilePath(parsedTestCase.getTestCaseFilePath());
-                document.setModuleName(parsedTestCase.getModuleName());
-                document.setRepositoryUrl(parsedBuildMetadata.getRepositoryUrl());
-                document.setBranchName(parsedBuildMetadata.getBranchName());
-                document.setOwners(owners);
-                document.setOwnershipSource(parsedTestCase.getOwnershipSource());
-                document.setCreatedAt(parsedTestCase.getCreatedAt());
-                document.setLastModifiedAt(parsedTestCase.getLastModifiedAt());
-                document.setLastModifiedBy(parsedTestCase.getLastModifiedBy());
-                document.setCurrentLifecycleStatus(parsedTestCase.getCurrentLifecycleStatus());
-                document.setJobName(parsedBuildMetadata.getJobName());
-                document.setBuildUrl(parsedBuildMetadata.getBuildUrl());
-                document.setCommitSha(parsedTestCase.getCurrentCommitSha());
+                document.setSuiteName(parsedTestReport.getSuiteName());
                 document.setStatus(parsedTestCase.getStatus());
                 document.setDuration(parsedTestCase.getDuration());
                 document.setStackTrace(parsedTestCase.getStackTrace());
                 document.setErrorMessage(parsedTestCase.getErrorMessage());
                 document.setTimestampExecution(parsedTestCase.getTimestamp_execution());
+                document.setTestCaseFilePath(parsedTestCase.getTestCaseFilePath());
+                document.setModuleName(parsedTestCase.getModuleName());
                 document.setStartLine(parsedTestCase.getStartLine());
                 document.setEndLine(parsedTestCase.getEndLine());
-                document.setMethodOwner(parsedTestCase.getMethodOwner());
-                document.setSuiteName(parsedTestReport.getSuiteName());
+                document.setOwners(owners);
+                document.setOwnershipSource(parsedTestCase.getOwnershipSource());
+                document.setConfidenceScore(parsedTestCase.getConfidenceScore());
+                document.setCreatedAt(parsedTestCase.getCreatedAt());
+                document.setLastModifiedAt(parsedTestCase.getLastModifiedAt());
+                document.setLastModifiedBy(parsedTestCase.getLastModifiedBy());
+                document.setCurrentLifecycleStatus(parsedTestCase.getCurrentLifecycleStatus());
+                document.setCurrentCommitSha(parsedTestCase.getCurrentCommitSha());
 
                 testDocuments.add(document);
             }

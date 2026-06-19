@@ -114,6 +114,9 @@ public class JUnitParser {
                     testCase.setClassName(finalClassName);
 
                     String methodName = testcase.getAttribute("methodname");
+                    if (methodName == null || methodName.isBlank()) {
+                        methodName = "UnknownMethod";
+                    }
                     testCase.setMethodName(methodName);
 
                     JsonNode test_info_node = null;
@@ -127,10 +130,16 @@ public class JUnitParser {
                         continue;
                     }
 
-                    String duration = testcase.getAttribute("time");
-                    testCase.setDuration(parseDoubleSafe(duration));
+                    Double duration = Double.valueOf(testcase.getAttribute("time"));
+                    if (duration == null) {
+                        duration = 0.0;
+                    }
+                    testCase.setDuration(duration);
 
                     String ts = testcase.getAttribute("timestamp_execution");
+                    if (ts == null || ts.isBlank()) {
+                        ts = "UNKNOWN_TIMESTAMP";
+                    }
                     testCase.setTimestamp_execution(ts);
 
                     testCase.setTestID(test_info_node.path("testId").asText(null));
@@ -184,23 +193,6 @@ public class JUnitParser {
                     testCase.setErrorMessage(errorMessage);
                     testCase.setStackTrace(stackTrace);
 
-                    String lifecycleStatus = "ACTIVE";
-                    if ("SKIPPED".equals(status)) {
-                        lifecycleStatus = "INACTIVE";
-                    } else {
-                        String lastModStr = test_info_node.path("lastModifiedAt").asText(null);
-                        if (lastModStr != null && !lastModStr.isBlank()) {
-                            java.time.Instant lastModified = java.time.Instant.parse(lastModStr);
-                            java.time.Instant sixMonthsAgo = java.time.Instant.now().minus(180, java.time.temporal.ChronoUnit.DAYS);
-
-                            if (lastModified.isBefore(sixMonthsAgo)) {
-                                lifecycleStatus = "INACTIVE";
-                            }
-                        }
-                    }
-
-                    testCase.setCurrentLifecycleStatus(lifecycleStatus);
-
                     parsedClass.getTestCases().add(testCase);
                 }
             }
@@ -208,15 +200,7 @@ public class JUnitParser {
             report.setTestClasses(new ArrayList<>(classMap.values()));
             return report;
         } catch (Exception e) {
-            throw new RuntimeException("Failed to parse structural custom XML report", e);
-        }
-    }
-
-    private double parseDoubleSafe(String value) {
-        try {
-            return (value == null || value.isBlank()) ? 0.0 : Double.parseDouble(value.trim());
-        } catch (Exception e) {
-            return 0.0;
+            throw new RuntimeException("Failed to parse XML report and Test info", e);
         }
     }
 }

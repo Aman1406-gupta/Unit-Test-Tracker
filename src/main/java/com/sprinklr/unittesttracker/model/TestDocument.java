@@ -5,7 +5,6 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.elasticsearch.annotations.Document;
 import org.springframework.data.elasticsearch.annotations.Field;
 import org.springframework.data.elasticsearch.annotations.FieldType;
-import java.util.List;
 
 @Document(indexName = "test")
 public class TestDocument {
@@ -80,10 +79,6 @@ public class TestDocument {
 
     @Field(type = FieldType.Keyword)
     @NotBlank
-    private List<String> owners;
-
-    @Field(type = FieldType.Keyword)
-    @NotBlank
     private String ownershipSource;
 
     @Field(type = FieldType.Double)
@@ -101,10 +96,6 @@ public class TestDocument {
     @Field(type = FieldType.Keyword)
     @NotBlank
     private String lastModifiedBy;
-
-    @Field(type = FieldType.Keyword)
-    @NotBlank
-    private String currentLifecycleStatus;
 
     @Field(type = FieldType.Keyword)
     @NotBlank
@@ -245,14 +236,6 @@ public class TestDocument {
     public void setEndLine(int endLine){
         this.endLine = endLine;
     }
-    
-    public List<String> getOwners(){
-        return owners;
-    }
-
-    public void setOwners(List<String> owners){
-        this.owners = owners;
-    }
 
     public String getOwnershipSource(){
         return ownershipSource;
@@ -292,14 +275,6 @@ public class TestDocument {
 
     public void setLastModifiedBy(String lastModifiedBy){
         this.lastModifiedBy = lastModifiedBy;
-    }
-
-    public String getCurrentLifecycleStatus(){
-        return currentLifecycleStatus;
-    }
-
-    public void setCurrentLifecycleStatus(String currentLifecycleStatus){
-        this.currentLifecycleStatus = currentLifecycleStatus;
     }
 
     public String getCurrentCommitSha(){

@@ -1,9 +1,6 @@
 package com.sprinklr.unittesttracker.service;
 
 import java.util.List;
-import java.util.Map;
-
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import com.sprinklr.unittesttracker.mapper.TestChangeEventMapper;
 import com.sprinklr.unittesttracker.parser.parseroutputobjects.ParsedTestReport;
@@ -21,7 +18,6 @@ public class TestChangeEventService {
         this.testChangeEventRepository = testChangeEventRepository;
     }
 
-    @Async
     public void trackChanges(ParsedTestReport parsedTestReport) {
         try {
             List<TestChangeEventDocument> testChangeEventDocuments = testChangeEventMapper.toTestChangeEventDocuments(parsedTestReport);

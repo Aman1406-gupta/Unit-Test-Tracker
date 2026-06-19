@@ -17,8 +17,7 @@ public class ParsedTestCase {
     private Double confidenceScore;
     private String createdAt;
     private String lastModifiedAt;
-    private String lastModifiedBy; 
-    private String currentLifecycleStatus; 
+    private String lastModifiedBy;
     private String currentCommitSha;
 
     public String getTestID() {
@@ -155,14 +154,6 @@ public class ParsedTestCase {
 
     public void setLastModifiedBy(String lastModifiedBy) {
         this.lastModifiedBy = lastModifiedBy;
-    }
-
-    public String getCurrentLifecycleStatus() {
-        return currentLifecycleStatus;
-    }
-
-    public void setCurrentLifecycleStatus(String currentLifecycleStatus) {
-        this.currentLifecycleStatus = currentLifecycleStatus;
     }
 
     public String getCurrentCommitSha() {

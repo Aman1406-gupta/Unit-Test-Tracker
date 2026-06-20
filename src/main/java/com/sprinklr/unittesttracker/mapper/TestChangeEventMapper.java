@@ -7,7 +7,6 @@ import com.sprinklr.unittesttracker.parser.parseroutputobjects.ParsedTestClass;
 import com.sprinklr.unittesttracker.parser.parseroutputobjects.ParsedTestReport;
 import com.sprinklr.unittesttracker.repository.TestChangeEventRepository;
 import com.sprinklr.unittesttracker.repository.TestDocumentRepository;
-import com.sprinklr.unittesttracker.repository.TestIdRecord;
 import org.springframework.stereotype.Component;
 import org.springframework.beans.factory.annotation.Autowired;
 import java.util.*;
@@ -33,10 +32,9 @@ public class TestChangeEventMapper {
             }
         }
 
-        List<String> allTestIDsInPreviousBuild = testDocumentRepository.findALLProjectedBy().stream().map(TestIdRecord::testID).toList();
+        List<String> allTestIDsInPreviousBuild = testDocumentRepository.findALLProjectedBy().stream().map(TestDocument::getTestID).toList();
         if (allTestIDsInPreviousBuild == null || allTestIDsInPreviousBuild.isEmpty()) {
             System.out.println("No test documents found in previous build. All tests will be treated as ADDED.");
-
         }
 
         for (String testID : allTestIDsInPreviousBuild) {
@@ -58,7 +56,10 @@ public class TestChangeEventMapper {
                     String generatedId = java.util.UUID.nameUUIDFromBytes((detectedAt.toString() + parsedTestReport.getBuildID() + testID).getBytes()).toString();
                     document.setEventID(generatedId);
 
-                     TestDocument deletedDoc = testDocumentRepository.deleteByTestID(testID).orElseThrow(() -> new RuntimeException("Failed to delete test document for testID: " + testID));
+                     long deletedCount = testDocumentRepository.deleteByTestID(testID);
+                     if (deletedCount == 0) {
+                         throw new RuntimeException("Failed to delete TestDocument for testID: " + testID);
+                     }
 
                     System.out.println("Added TestChangeEventDocument for deleted testID: " + testID + " with changeType: DELETED");
                     System.out.println("Deleted TestDocument for testID: " + testID + " from repository");
@@ -71,7 +72,6 @@ public class TestChangeEventMapper {
                 String testID = parsedTestCase.getTestID();
 
                 TestDocument historyDoc = testDocumentRepository.findByTestID(testID).orElse(null);
-                System.out.println("Processing testID: " + testID + " with historyDoc: " + (historyDoc != null ? "found" : "not found"));
                 TestChangeEventDocument.ChangeType computedChangeType = TestChangeEventDocument.ChangeType.UNCHANGED;
                 String previousStatus = null;
                 String currentStatus;
@@ -91,6 +91,7 @@ public class TestChangeEventMapper {
                             computedChangeType = TestChangeEventDocument.ChangeType.MODIFIED;
                         } else {
                             computedChangeType = TestChangeEventDocument.ChangeType.UNCHANGED;
+                            continue;
                         }
                     }
                 }

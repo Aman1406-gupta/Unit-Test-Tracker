@@ -30,6 +30,7 @@ public class TestChangeEventDocument {
     public enum ChangeType {
         ADDED,
         MODIFIED,
+        STATUS_CHANGED,
         DELETED,
         UNCHANGED
     }

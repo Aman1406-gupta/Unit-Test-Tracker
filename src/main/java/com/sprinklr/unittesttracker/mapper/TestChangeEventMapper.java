@@ -61,7 +61,6 @@ public class TestChangeEventMapper {
                     document.setEventID(generatedId);
 
                      long deletedCount = testDocumentRepository.deleteByTestID(testID);
-                     System.out.println("Attempting to delete TestDocument for testID: " + testID + ". Deleted count: " + deletedCount);
                      if (deletedCount == 0) {
                          throw new RuntimeException("Failed to delete TestDocument for testID: " + testID);
                      }
@@ -92,8 +91,10 @@ public class TestChangeEventMapper {
                     currentCommitSha = parsedTestCase.getCurrentCommitSha();
 
                     if (previousStatus != null && currentStatus != null) {
-                        if (!previousCommitSha.equals(currentCommitSha) || !previousStatus.equals(currentStatus)) {
+                        if (!previousCommitSha.equals(currentCommitSha)) {
                             computedChangeType = TestChangeEventDocument.ChangeType.MODIFIED;
+                        } else if (!previousStatus.equals(currentStatus)) {
+                            computedChangeType = TestChangeEventDocument.ChangeType.STATUS_CHANGED;
                         } else {
                             computedChangeType = TestChangeEventDocument.ChangeType.UNCHANGED;
                             continue;

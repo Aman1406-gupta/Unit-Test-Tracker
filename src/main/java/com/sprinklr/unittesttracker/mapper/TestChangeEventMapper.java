@@ -40,6 +40,10 @@ public class TestChangeEventMapper {
         for (String testID : allTestIDsInPreviousBuild) {
             if (!processedTestIDsInCurrentBuild.contains(testID)) {
                 TestDocument historyDoc = testDocumentRepository.findByTestID(testID).orElse(null);
+                if(historyDoc == null) {
+                    System.out.println("No history document found for testID: " + testID + ". Skipping deletion tracking.");
+                    continue;
+                }
                 if (historyDoc != null) {
                     TestChangeEventDocument document = new TestChangeEventDocument();
                     Instant detectedAt = Instant.now();
@@ -57,10 +61,11 @@ public class TestChangeEventMapper {
                     document.setEventID(generatedId);
 
                      long deletedCount = testDocumentRepository.deleteByTestID(testID);
+                     System.out.println("Attempting to delete TestDocument for testID: " + testID + ". Deleted count: " + deletedCount);
                      if (deletedCount == 0) {
                          throw new RuntimeException("Failed to delete TestDocument for testID: " + testID);
                      }
-
+                    testChangeEventDocuments.add(document);
                     System.out.println("Added TestChangeEventDocument for deleted testID: " + testID + " with changeType: DELETED");
                     System.out.println("Deleted TestDocument for testID: " + testID + " from repository");
                 }
